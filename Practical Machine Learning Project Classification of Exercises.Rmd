@@ -206,15 +206,30 @@ g <- g + geom_violin()
 g + facet_wrap( ~measure,scales="free",ncol=8)
 ```
 
-# Building the model. Analysis of Multiclass classification algorithms. 
+# Building the model. Cross Validation and Analysis of Multiclass classification algorithms. 
+
+In this section, the cross validation process and the analysis of the multilass classification algorithms are performed. 
+
+To perform cross validation, the training data into a pure training dataset (80%) and a validation dataset (20%). The validation set will be used to assess the accuracy of the prediction of the classifier and the out-of-sample error.
 
 The following 15 multiclass classification methos have been tested, and its accuracy compared: knn, rf, pda, parRF, sda, hdrda, LMT, slda, hdda, RRFglobal, C5.0, LogitBoost, pam, PART, rpart.
 
-For all of them, a cv method has been selected for cross validation.
+For all of them, a k-fold cross-validation method has been selected, with k = 10, which is the most recommended k value. The training sample will be randomly partitioned into 10 equal sized subsamples. A single subsample is retained as the validation data for testing the model, and the remaining 9 subsamples are used as training data.The cross-validation process is repeated 10 times, with each of the 10 subsamples used exactly once as the validation data. 
 
-Other methods could have been selected. The available resampling methods are: The  "boot", "boot632", "optimism_boot", "boot_all", "cv", "repeatedcv", "LOOCV", "LGOCV" (for repeated training/test splits), "none" (only fits one model to the entire training set), "oob" (only for random forest, bagged trees, bagged earth, bagged flexible discriminant analysis, or conditional tree forest models), timeslice, "adaptive_cv", "adaptive_boot" or "adaptive_LGOCV"
+Other methods for cross validation could have been selected. The available resampling methods are: The  "boot", "boot632", "optimism_boot", "boot_all", "cv", "repeatedcv", "LOOCV", "LGOCV" (for repeated training/test splits), "none" (only fits one model to the entire training set), "oob" (only for random forest, bagged trees, bagged earth, bagged flexible discriminant analysis, or conditional tree forest models), timeslice, "adaptive_cv", "adaptive_boot" or "adaptive_LGOCV"
 
-```{r, echo=TRUE, results='hide',cache = TRUE,eval = FALSE}
+First of all, we create the training and validation sets. 15699 observations are used for training and 3145 are used for validation.
+```{r, echo=TRUE,cache = TRUE}
+set.seed(12345)
+partitionSamples <- createDataPartition(y=trainTransformed$classe, p=0.8, list=FALSE)
+trainTransformed <- trainTransformed[partitionSamples, ] 
+validationTransformed <- trainTransformed[-partitionSamples, ]
+dim(trainTransformed)
+dim(validationTransformed)
+```
+
+
+```{r, echo=TRUE, results='hide',cache = TRUE}
 library(doParallel)
 registerDoParallel(4)
 getDoParWorkers()
@@ -234,7 +249,8 @@ fitKNN = train(
 head(predict(fitKNN, type = "prob"))
 predictedKNN<-predict(fitKNN,newdata=trainTransformed)
 CM_fitKNN <- confusionMatrix(predictedKNN, trainTransformed$classe)
-predictedKNN2<-predict(fitKNN,newdata=testTransformed)
+predictedKNN2<-predict(fitKNN,validationTransformed)
+CM_fitKNN_validation <- confusionMatrix(predictedKNN2, validationTransformed$classe)
 varImp_fitKNN <- varImp(fitKNN)
 ```
 
@@ -251,7 +267,8 @@ fitRF = train(
 head(predict(fitRF, type = "prob"))
 predictedRF<-predict(fitRF,newdata=trainTransformed)
 CM_fitRF <- confusionMatrix(predictedRF, trainTransformed$classe)
-predictedRF2<-predict(fitRF,newdata=testTransformed)
+predictedRF2<-predict(fitRF,validationTransformed)
+CM_fitRF_validation <- confusionMatrix(predictedRF2, validationTransformed$classe)
 varImp_fitRF <- varImp(fitRF)
 ```
 
@@ -269,11 +286,12 @@ fitpda= train(
 head(predict(fitpda, type = "prob"))
 predictedpda<-predict(fitpda,newdata=trainTransformed)
 CM_fitpda <- confusionMatrix(predictedpda, trainTransformed$classe)
-predictedpda2<-predict(fitpda,newdata=testTransformed)
+predictedpda2<-predict(fitpda,validationTransformed)
+CM_fitpda_validation <- confusionMatrix(predictedpda2, validationTransformed$classe)
 varImp_fitpda <- varImp(fitpda)
 ```
 
--Parallel Random Forest
+- Parallel Random Forest
 
 ```{r, echo=TRUE, results='hide',cache = TRUE,eval = FALSE}
 library(e1071)
@@ -288,11 +306,12 @@ fitPRF = train(
 head(predict(fitPRF, type = "prob"))
 predictedPRF<-predict(fitPRF,newdata=trainTransformed)
 CM_fitPRF <- confusionMatrix(predictedPRF, trainTransformed$classe)
-predictedPRF2<-predict(fitPRF,newdata=testTransformed)
+predictedPRF2<-predict(fitPRF,validationTransformed)
+CM_fitPRF_validation <- confusionMatrix(predictedPRF2, validationTransformed$classe)
 varImp_fitPRF <- varImp(fitPRF)
 ```
 
--sda
+- sda
 
 ```{r, echo=TRUE, results='hide',cache = TRUE,eval = FALSE}
 library(sda)
@@ -306,7 +325,8 @@ fitsda= train(
 head(predict(fitsda, type = "prob"))
 predictedsda<-predict(fitsda,newdata=trainTransformed)
 CM_fitsda <- confusionMatrix(predictedsda, trainTransformed$classe)
-predictedsda2<-predict(fitsda,newdata=testTransformed)
+predictedsda2<-predict(fitsda,validationTransformed)
+CM_fitsda_validation <- confusionMatrix(predictedsda2, validationTransformed$classe)
 varImp_fitsda <- varImp(fitsda)
 ```
 
@@ -324,7 +344,8 @@ fithdrda= train(
 head(predict(fithdrda, type = "prob"))
 predictedhdrda<-predict(fithdrda,newdata=trainTransformed)
 CM_fithdrda <- confusionMatrix(predictedhdrda, trainTransformed$classe)
-predictedhdrda2<-predict(fithdrda,newdata=testTransformed)
+predictedhdrda2<-predict(fithdrda,validationTransformed)
+CM_fithdrda_validation <- confusionMatrix(predictedhdrda2, validationTransformed$classe)
 varImp_fithdrda <- varImp(fithdrda)
 ```
 
@@ -343,7 +364,8 @@ fitLMT = train(
 head(predict(fitLMT, type = "prob"))
 predictedLMT<-predict(fitLMT,newdata=trainTransformed)
 CM_fitLMT <- confusionMatrix(predictedLMT, trainTransformed$classe)
-predictedLMT2<-predict(fitLMT,newdata=testTransformed)
+predictedLMT2<-predict(fitLMT,validationTransformed)
+CM_fitLMT_validation <- confusionMatrix(predictedLMT2, validationTransformed$classe)
 varImp_fitLMT <- varImp(fitLMT)
 ```
 
@@ -361,7 +383,8 @@ fitslda= train(
 head(predict(fitslda, type = "prob"))
 predictedslda<-predict(fitslda,newdata=trainTransformed)
 CM_fitslda <- confusionMatrix(predictedslda, trainTransformed$classe)
-predictedslda2<-predict(fitslda,newdata=testTransformed)
+predictedslda2<-predict(fitslda,validationTransformed)
+CM_fitslda_validation <- confusionMatrix(predictedslda2, validationTransformed$classe)
 varImp_fitslda <- varImp(fitslda)
 ```
 
@@ -379,7 +402,8 @@ fithdda= train(
 head(predict(fithdda, type = "prob"))
 predictedhdda<-predict(fithdda,newdata=trainTransformed)
 CM_fithdda <- confusionMatrix(predictedhdda, trainTransformed$classe)
-predictedhdda2<-predict(fithdda,newdata=testTransformed)
+predictedhdda2<-predict(fithdda,validationTransformed)
+CM_fithdda_validation <- confusionMatrix(predictedhdda2, validationTransformed$classe)
 varImp_fithdda <- varImp(fithdda)
 ```
 
@@ -397,7 +421,8 @@ fitRRFglobal= train(
 head(predict(fitRRFglobal, type = "prob"))
 predictedRRFglobal<-predict(fitRRFglobal,newdata=trainTransformed)
 CM_fitRRFglobal <- confusionMatrix(predictedRRFglobal, trainTransformed$classe)
-predictedRRFglobal2<-predict(fitRRFglobal,newdata=testTransformed)
+predictedRRFglobal2<-predict(fitRRFglobal,validationTransformed)
+CM_fitRRFglobal_validation <- confusionMatrix(predictedRRFglobal2, validationTransformed$classe)
 varImp_fitRRFglobal <- varImp(fitRRFglobal)
 ```
 
@@ -414,7 +439,8 @@ fitC50 = train(
 head(predict(fitC50, type = "prob"))
 predictedC50<-predict(fitC50,newdata=trainTransformed)
 CM_fitC50 <- confusionMatrix(predictedC50, trainTransformed$classe)
-predictedC502<-predict(fitC50,newdata=testTransformed)
+predictedC502<-predict(fitC50,validationTransformed)
+CM_fitC50_validation <- confusionMatrix(predictedC502, validationTransformed$classe)
 varImp_fitC50 <- varImp(fitC50)
 ```
 
@@ -432,7 +458,8 @@ fitLogitBoost= train(
 head(predict(fitLogitBoost, type = "prob"))
 predictedLogitBoost<-predict(fitLogitBoost,newdata=trainTransformed)
 CM_fitLogitBoost <- confusionMatrix(predictedLogitBoost, trainTransformed$classe)
-predictedLogitBoost2<-predict(fitLogitBoost,newdata=testTransformed)
+predictedLogitBoost2<-predict(fitLogitBoost,validationTransformed)
+CM_fitLogitBoost_validation <- confusionMatrix(predictedLogitBoost2, validationTransformed$classe)
 varImp_fitLogitBoost <- varImp(fitLogitBoost)
 ```
 
@@ -450,7 +477,8 @@ fitpam= train(
 head(predict(fitpam, type = "prob"))
 predictedpam<-predict(fitpam,newdata=trainTransformed)
 CM_fitpam <- confusionMatrix(predictedpam, trainTransformed$classe)
-predictedpam2<-predict(fitpam,newdata=testTransformed)
+predictedpam2<-predict(fitpam,validationTransformed)
+CM_fitpam_validation <- confusionMatrix(predictedpam2, validationTransformed$classe)
 varImp_fitpam <- varImp(fitpam)
 ```
 
@@ -467,7 +495,8 @@ fitRBC = train(
 head(predict(fitRBC, type = "prob"))
 predictedRBC<-predict(fitRBC,newdata=trainTransformed)
 CM_fitRBC <- confusionMatrix(predictedRBC, trainTransformed$classe)
-predictedRBC2<-predict(fitRBC,newdata=testTransformed)
+predictedRBC2<-predict(fitRBC,validationTransformed)
+CM_fitRBC_validation <- confusionMatrix(predictedRBC2, validationTransformed$classe)
 varImp_fitRBC <- varImp(fitRBC)
 ```
 
@@ -484,7 +513,8 @@ fitRPART = train(
 head(predict(fitRPART, type = "prob"))
 predictedRPART<-predict(fitRPART,newdata=trainTransformed)
 CM_fitRPART <- confusionMatrix(predictedRPART, trainTransformed$classe)
-predictedRPART2<-predict(fitRPART,newdata=testTransformed)
+predictedRPART2<-predict(fitRPART,validationTransformed)
+CM_fitRPART_validation <- confusionMatrix(predictedRPART2, validationTransformed$classe)
 varImp_fitRPART <- varImp(fitRPART)
 ```
 
@@ -497,18 +527,35 @@ result_Analysis = data.frame(methods = methods<-c("C50","hdda","hdrda","KNN","LM
                                                   ,"LogitBoost","pam","pda","PRF"
                                                   ,"RBC","RF","RPART","RRFglobal"
                                                   ,"sda","slda"),
-accuracy = c(CM_fitC50$overall["Accuracy"],CM_fithdda$overall["Accuracy"]
+InSampleAccuracy = c(CM_fitC50$overall["Accuracy"],CM_fithdda$overall["Accuracy"]
              ,CM_fithdrda$overall["Accuracy"],CM_fitC50$overall["Accuracy"],
              CM_fitKNN$overall["Accuracy"],CM_fitLogitBoost$overall["Accuracy"]
              ,CM_fitpam$overall["Accuracy"],CM_fitpda$overall["Accuracy"],
              CM_fitPRF$overall["Accuracy"],CM_fitRBC$overall["Accuracy"]
              ,CM_fitRF$overall["Accuracy"],CM_fitRPART$overall["Accuracy"],
              CM_fitRRFglobal$overall["Accuracy"],CM_fitsda$overall["Accuracy"]
-             ,CM_fitslda$overall["Accuracy"]))
+             ,CM_fitslda$overall["Accuracy"]),
+OutSampleAccuracy = c(CM_fitC50_validation$overall["Accuracy"]
+                      ,CM_fithdda_validation$overall["Accuracy"]
+             ,CM_fithdrda_validation$overall["Accuracy"]
+             ,CM_fitC50_validation$overall["Accuracy"],
+             CM_fitKNN_validation$overall["Accuracy"]
+             ,CM_fitLogitBoost_validation$overall["Accuracy"]
+             ,CM_fitpam_validation$overall["Accuracy"]
+             ,CM_fitpda_validation$overall["Accuracy"],
+             CM_fitPRF_validation$overall["Accuracy"]
+             ,CM_fitRBC_validation$overall["Accuracy"]
+             ,CM_fitRF_validation$overall["Accuracy"]
+             ,CM_fitRPART_validation$overall["Accuracy"],
+             CM_fitRRFglobal_validation$overall["Accuracy"]
+             ,CM_fitsda_validation$overall["Accuracy"]
+             ,CM_fitslda_validation$overall["Accuracy"]))
 result_Analysis
 ```
 
-The results show that 6 methods have an in sample accuracy of 1, meaning that they are able to classify properly all the observations in the training data. With this is sample accuracy, it is expected to have a very high classification out of sample accuracy.To finalize the analysis,the importance of each predictor have been analyzed for those 6 methods with a 100% accuracy.
+The results show that 6 methods have both an in sample accuracy and an out of sample accuracy of 1, meaning that they are able to classify properly all the observations in the training data and in the validation data. With this accuracies, it is expected to have a very high classification out of sample accuracy when analyzing new data coming from the devices.
+
+To finalize the analysis,the importance of each predictor have been analyzed for those 6 methods with a 100% accuracy.
 
 - Importance for C50
 
